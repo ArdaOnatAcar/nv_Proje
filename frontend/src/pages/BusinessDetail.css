@@ -1,0 +1,223 @@
+.business-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.business-header {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 40px;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.business-header-image {
+  flex-shrink: 0;
+  width: 300px;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.business-header-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-header {
+  font-size: 120px;
+  font-weight: bold;
+  color: #ddd;
+}
+
+.business-header-info {
+  flex: 1;
+}
+
+.business-header-info h1 {
+  margin: 0 0 10px 0;
+  font-size: 32px;
+  color: #333;
+}
+
+.business-type {
+  color: #4a90e2;
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.business-description {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.business-details {
+  margin-bottom: 20px;
+}
+
+.business-details p {
+  margin: 8px 0;
+  color: #555;
+}
+
+.business-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+
+.business-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+.services-section,
+.booking-section,
+.reviews-section {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.reviews-section {
+  grid-column: 1 / -1;
+}
+
+.services-section h2,
+.booking-section h2,
+.reviews-section h2 {
+  margin: 0 0 20px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.service-item {
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  transition: border-color 0.3s;
+}
+
+.service-item:hover {
+  border-color: #4a90e2;
+}
+
+.service-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.service-info p {
+  margin: 0 0 12px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.service-details {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+}
+
+.service-price {
+  color: #4a90e2;
+  font-weight: 600;
+}
+
+.service-duration {
+  color: #666;
+}
+
+.booking-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 15px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.review-item {
+  padding: 20px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.reviewer-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.review-rating {
+  color: #ffc107;
+}
+
+.review-comment {
+  color: #666;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+.review-date {
+  color: #999;
+  font-size: 12px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .business-header {
+    flex-direction: column;
+  }
+
+  .business-header-image {
+    width: 100%;
+  }
+
+  .business-content {
+    grid-template-columns: 1fr;
+  }
+}
