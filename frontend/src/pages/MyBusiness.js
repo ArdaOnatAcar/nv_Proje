@@ -8,6 +8,7 @@ const MyBusiness = () => {
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState(null);
+  // Composite creation draft state
   const [businessFormData, setBusinessFormData] = useState({
     name: '',
     type: 'berber',
@@ -18,6 +19,13 @@ const MyBusiness = () => {
     opening_time: '09:00',
     closing_time: '18:00'
   });
+  const [draftStaff, setDraftStaff] = useState([]); // [{name: ''}]
+  const [newStaffName, setNewStaffName] = useState('');
+  const [draftServices, setDraftServices] = useState([]); // [{name, description, price, duration}]
+  const [newService, setNewService] = useState({ name: '', description: '', price: '', duration: '30' });
+  // assignments: staffIndex -> Set(serviceIndex)
+  const [draftAssignments, setDraftAssignments] = useState({});
+  const [creatingComposite, setCreatingComposite] = useState(false);
   const [serviceFormData, setServiceFormData] = useState({
     name: '',
     description: '',
@@ -48,6 +56,7 @@ const MyBusiness = () => {
   const [staffServices, setStaffServices] = useState({}); // { [staffId]: Array<number> }
   const [staffLoading, setStaffLoading] = useState({}); // { [businessId]: boolean }
   const [serviceStaffSelection, setServiceStaffSelection] = useState({}); // { [businessId]: Array<staffId> }
+  const [matcherSaving, setMatcherSaving] = useState({}); // { [`${staffId}`]: boolean }
 
   const businessTypes = [
     { value: 'berber', label: 'Berber' },
@@ -135,26 +144,90 @@ const MyBusiness = () => {
     }
   };
 
-  const handleBusinessSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const toggleStaffServiceImmediate = async (staffId, serviceId, checked) => {
+    const prevSet = new Set(staffServices[staffId] || []);
+    const nextSet = new Set(prevSet);
+    if (checked) nextSet.add(serviceId); else nextSet.delete(serviceId);
+    const nextArr = Array.from(nextSet);
 
+    setStaffServices(prev => ({ ...prev, [staffId]: nextArr }));
+    setMatcherSaving(prev => ({ ...prev, [staffId]: true }));
     try {
-      await businessService.create(businessFormData);
+      await staffService.setServices(staffId, nextArr);
+    } catch (e) {
+      // revert on failure
+      const prevArr = Array.from(prevSet);
+      setStaffServices(prev => ({ ...prev, [staffId]: prevArr }));
+      alert(e.response?.data?.error || 'Hizmet ataması kaydedilemedi');
+    } finally {
+      setMatcherSaving(prev => ({ ...prev, [staffId]: false }));
+    }
+  };
+
+  const validateComposite = () => {
+    const { name, type, description, address, phone, opening_time, closing_time } = businessFormData;
+    if (!name || !type || !description || !address || !phone || !opening_time || !closing_time) return 'Tüm işletme alanları (görsel hariç) zorunlu.';
+    if (draftStaff.length === 0) return 'En az bir personel ekleyin.';
+    if (draftServices.length === 0) return 'En az bir hizmet ekleyin.';
+    // ensure each service has at least one staff assignment
+    for (let si = 0; si < draftServices.length; si++) {
+      let assigned = false;
+      for (let sti = 0; sti < draftStaff.length; sti++) {
+        const set = draftAssignments[sti];
+        if (set && set.has(si)) { assigned = true; break; }
+      }
+      if (!assigned) return `Hizmet '${draftServices[si].name || si+1}' için personel seçin.`;
+    }
+    return null;
+  };
+
+  const handleCompositeCreate = async () => {
+    setError('');
+    const errMsg = validateComposite();
+    if (errMsg) { setError(errMsg); return; }
+    setCreatingComposite(true);
+    try {
+      // 1. Create business
+      const bizResp = await businessService.create(businessFormData);
+      const businessId = bizResp.data.id;
+      // 2. Create staff and map indices
+      const staffIdMap = [];
+      for (let i = 0; i < draftStaff.length; i++) {
+        const st = draftStaff[i];
+        const stResp = await staffService.create(businessId, { name: st.name });
+        staffIdMap[i] = stResp.data.id;
+      }
+      // 3. Create services and map indices
+      const serviceIdMap = [];
+      for (let j = 0; j < draftServices.length; j++) {
+        const svc = draftServices[j];
+        const svcResp = await serviceService.create({
+          business_id: businessId,
+            name: svc.name,
+            description: svc.description,
+            price: parseFloat(svc.price),
+            duration: parseInt(svc.duration)
+        });
+        serviceIdMap[j] = svcResp.data.id;
+      }
+      // 4. Assign services per staff
+      for (let sti = 0; sti < draftStaff.length; sti++) {
+        const set = draftAssignments[sti] || new Set();
+        const serviceIds = Array.from(set).map(si => serviceIdMap[si]);
+        await staffService.setServices(staffIdMap[sti], serviceIds);
+      }
+      // Done
       setShowBusinessForm(false);
+      // reset draft states
       setBusinessFormData({
-        name: '',
-        type: 'berber',
-        description: '',
-        address: '',
-        phone: '',
-        image_url: '',
-        opening_time: '09:00',
-        closing_time: '18:00'
+        name: '', type: 'berber', description: '', address: '', phone: '', image_url: '', opening_time: '09:00', closing_time: '18:00'
       });
+      setDraftStaff([]); setDraftServices([]); setDraftAssignments({}); setNewStaffName(''); setNewService({ name:'', description:'', price:'', duration:'30' });
       fetchBusinesses();
-    } catch (error) {
-      setError(error.response?.data?.error || 'İşletme oluşturulamadı');
+    } catch (e) {
+      setError(e.response?.data?.error || 'İşletme oluşturma başarısız');
+    } finally {
+      setCreatingComposite(false);
     }
   };
 
@@ -244,91 +317,171 @@ const MyBusiness = () => {
       </div>
 
       {showBusinessForm && (
-        <div className="modal-overlay" onClick={() => setShowBusinessForm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Yeni İşletme Ekle</h2>
-            {error && <div className="error-message">{error}</div>}
-            <form onSubmit={handleBusinessSubmit}>
+        <div className="modal-overlay" onClick={() => !creatingComposite && setShowBusinessForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
+            <h2>Yeni İşletme Ekle (Tüm Bilgiler)</h2>
+            {error && <div className="error-message" style={{ marginBottom: 16 }}>{error}</div>}
+            <section style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
+              <h3 style={{ marginTop: 0 }}>İşletme Bilgileri</h3>
               <div className="form-group">
                 <label>İşletme Adı *</label>
-                <input
-                  type="text"
-                  value={businessFormData.name}
-                  onChange={(e) => setBusinessFormData({...businessFormData, name: e.target.value})}
-                  required
-                />
+                <input type="text" value={businessFormData.name} onChange={(e)=>setBusinessFormData({...businessFormData,name:e.target.value})} required />
               </div>
               <div className="form-group">
                 <label>Tür *</label>
-                <select
-                  value={businessFormData.type}
-                  onChange={(e) => setBusinessFormData({...businessFormData, type: e.target.value})}
-                  required
-                >
-                  {businessTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
+                <select value={businessFormData.type} onChange={(e)=>setBusinessFormData({...businessFormData,type:e.target.value})} required>
+                  {businessTypes.map(bt => <option key={bt.value} value={bt.value}>{bt.label}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label>Açıklama</label>
-                <textarea
-                  value={businessFormData.description}
-                  onChange={(e) => setBusinessFormData({...businessFormData, description: e.target.value})}
-                  rows="3"
-                />
+                <label>Açıklama *</label>
+                <textarea rows="3" value={businessFormData.description} onChange={(e)=>setBusinessFormData({...businessFormData,description:e.target.value})} />
               </div>
               <div className="form-group">
-                <label>Adres</label>
-                <input
-                  type="text"
-                  value={businessFormData.address}
-                  onChange={(e) => setBusinessFormData({...businessFormData, address: e.target.value})}
-                />
+                <label>Adres *</label>
+                <input type="text" value={businessFormData.address} onChange={(e)=>setBusinessFormData({...businessFormData,address:e.target.value})} />
               </div>
               <div className="form-group">
-                <label>Telefon</label>
-                <input
-                  type="tel"
-                  value={businessFormData.phone}
-                  onChange={(e) => setBusinessFormData({...businessFormData, phone: e.target.value})}
-                />
-              </div>
-              <div className="form-group">
-                <label>Görsel URL</label>
-                <input
-                  type="url"
-                  value={businessFormData.image_url}
-                  onChange={(e) => setBusinessFormData({...businessFormData, image_url: e.target.value})}
-                />
+                <label>Telefon *</label>
+                <input type="tel" value={businessFormData.phone} onChange={(e)=>setBusinessFormData({...businessFormData,phone:e.target.value})} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Açılış Saati</label>
-                  <input
-                    type="time"
-                    value={businessFormData.opening_time}
-                    onChange={(e) => setBusinessFormData({...businessFormData, opening_time: e.target.value})}
-                  />
+                  <label>Açılış Saati *</label>
+                  <input type="time" value={businessFormData.opening_time} onChange={(e)=>setBusinessFormData({...businessFormData,opening_time:e.target.value})} />
                 </div>
                 <div className="form-group">
-                  <label>Kapanış Saati</label>
-                  <input
-                    type="time"
-                    value={businessFormData.closing_time}
-                    onChange={(e) => setBusinessFormData({...businessFormData, closing_time: e.target.value})}
-                  />
+                  <label>Kapanış Saati *</label>
+                  <input type="time" value={businessFormData.closing_time} onChange={(e)=>setBusinessFormData({...businessFormData,closing_time:e.target.value})} />
                 </div>
               </div>
-              <div className="form-actions">
-                <button type="button" onClick={() => setShowBusinessForm(false)} className="btn-secondary">
-                  İptal
-                </button>
-                <button type="submit" className="btn-primary">
-                  Kaydet
-                </button>
+              <div className="form-group">
+                <label>Görsel URL (Opsiyonel)</label>
+                <input type="url" value={businessFormData.image_url} onChange={(e)=>setBusinessFormData({...businessFormData,image_url:e.target.value})} />
               </div>
-            </form>
+            </section>
+            <section style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Personeller *</h3>
+              <div style={{ background: '#f9f9f9', padding: 12, borderRadius: 6, marginBottom: 12 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>Yeni Personel Adı</label>
+                <div style={{ display:'flex', gap:8 }}>
+                  <input type="text" value={newStaffName} onChange={(e)=>setNewStaffName(e.target.value)} style={{ flex: 1 }} />
+                  <button type="button" className="btn-primary" onClick={()=>{ const n = newStaffName.trim(); if(!n) return; setDraftStaff(prev=>[...prev,{name:n}]); setNewStaffName(''); }}>Ekle</button>
+                </div>
+              </div>
+              
+              <div style={{ marginTop: 12 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Eklenen Personeller:</label>
+                {draftStaff.length === 0 ? <div style={{ fontSize:13, color:'#666' }}>Henüz personel eklenmedi.</div> : (
+                  <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexWrap:'wrap', gap:8 }}>
+                    {draftStaff.map((st,i)=>(
+                      <li key={i} style={{ padding:'6px 10px', border:'1px solid #ddd', borderRadius:4, background:'#fff', display:'flex', alignItems:'center', gap:6 }}>
+                        <span>{st.name}</span>
+                        <button type="button" className="btn-delete-small" style={{ width:20, height:20, fontSize: 14 }} onClick={()=> setDraftStaff(prev=>prev.filter((_,idx)=>idx!==i))}>×</button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </section>
+            <section style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Hizmetler *</h3>
+              <div style={{ background: '#f9f9f9', padding: 12, borderRadius: 6, marginBottom: 12 }}>
+                <h4 style={{ marginTop: 0, marginBottom: 10, fontSize: 14 }}>Yeni Hizmet Ekle</h4>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>Hizmet Adı</label>
+                    <input type="text" value={newService.name} onChange={(e)=>setNewService({...newService,name:e.target.value})} style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>Açıklama</label>
+                    <textarea rows="2" value={newService.description} onChange={(e)=>setNewService({...newService,description:e.target.value})} style={{ width: '100%' }} />
+                  </div>
+                  <div style={{ display:'flex', gap:12 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>Fiyat (TL)</label>
+                      <input type="number" value={newService.price} onChange={(e)=>setNewService({...newService,price:e.target.value})} style={{ width: '100%' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: 4, fontSize: 13 }}>Süre (dk)</label>
+                      <input type="number" value={newService.duration} onChange={(e)=>setNewService({...newService,duration:e.target.value})} style={{ width: '100%' }} />
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <button type="button" className="btn-primary" onClick={()=>{
+                      const { name, price, duration } = newService;
+                      if(!name.trim() || !price || !duration) return;
+                      setDraftServices(prev=>[...prev,{...newService}]);
+                      setNewService({ name:'', description:'', price:'', duration:'30' });
+                    }}>Listeye Ekle</button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>Eklenen Hizmetler:</label>
+                {draftServices.length === 0 ? <div style={{ fontSize:13, color:'#666' }}>Henüz hizmet eklenmedi.</div> : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {draftServices.map((svc,si)=>(
+                      <div key={si} style={{ display:'flex', justifyContent: 'space-between', alignItems:'center', border:'1px solid #ddd', padding:'8px 12px', borderRadius:4, background: '#fff' }}>
+                        <div>
+                          <div style={{ fontWeight: 500 }}>{svc.name}</div>
+                          <div style={{ fontSize: 13, color: '#666' }}>{svc.price} TL • {svc.duration} dk</div>
+                        </div>
+                        <button type="button" className="btn-delete-small" style={{ width:24, height:24 }} onClick={()=> setDraftServices(prev=>prev.filter((_,idx)=>idx!==si))}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+            <section style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Personel–Hizmet Eşleştirme *</h3>
+              {draftStaff.length === 0 || draftServices.length === 0 ? (
+                <div style={{ fontSize:13, color:'#666' }}>Önce personel ve hizmetleri ekleyin.</div>
+              ) : (
+                <div style={{ overflowX:'auto' }}>
+                  <table style={{ borderCollapse:'collapse', minWidth: draftServices.length*140 + 160 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign:'left', padding:'6px 8px', borderBottom:'1px solid #eee' }}>Personel</th>
+                        {draftServices.map((svc,si)=>(
+                          <th key={si} style={{ padding:'6px 8px', borderBottom:'1px solid #eee' }}>{svc.name || `Hizmet ${si+1}`}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {draftStaff.map((st,sti)=>(
+                        <tr key={sti}>
+                          <td style={{ padding:'6px 8px', borderBottom:'1px solid #f5f5f5' }}>{st.name || `Personel ${sti+1}`}</td>
+                          {draftServices.map((svc,si)=>{
+                            const set = draftAssignments[sti] || new Set();
+                            const checked = set.has(si);
+                            return (
+                              <td key={si} style={{ textAlign:'center', padding:'6px 8px', borderBottom:'1px solid #f5f5f5' }}>
+                                <input type="checkbox" checked={checked} onChange={(e)=>{
+                                  setDraftAssignments(prev=>{
+                                    const copy = { ...prev };
+                                    const current = new Set(copy[sti] || []);
+                                    if(e.target.checked) current.add(si); else current.delete(si);
+                                    copy[sti] = current;
+                                    return copy;
+                                  });
+                                }} />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+            <div className="form-actions" style={{ position:'sticky', bottom:0 }}>
+              <button type="button" disabled={creatingComposite} onClick={()=>!creatingComposite && setShowBusinessForm(false)} className="btn-secondary">İptal</button>
+              <button type="button" className="btn-primary" disabled={creatingComposite} onClick={handleCompositeCreate}>{creatingComposite ? 'Kaydediliyor...' : 'İşletmeyi Oluştur'}</button>
+            </div>
           </div>
         </div>
       )}
@@ -548,37 +701,59 @@ const MyBusiness = () => {
                                 <button className="btn-primary" onClick={() => saveStaff(business.id, st)}>Kaydet</button>
                               </div>
 
-                              <div style={{ marginTop: 8 }}>
-                                <div style={{ fontSize: 13, marginBottom: 4 }}>Hizmet Atamaları</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                  {(business.services || []).map(svc => {
-                                    const selected = (staffServices[st.id] || []).includes(svc.id);
-                                    return (
-                                      <label key={svc.id} style={{ border: '1px solid #ddd', padding: '6px 8px', borderRadius: 4, cursor: 'pointer' }}>
-                                        <input
-                                          type="checkbox"
-                                          checked={selected}
-                                          onChange={(e) => {
-                                            const next = new Set(staffServices[st.id] || []);
-                                            if (e.target.checked) next.add(svc.id); else next.delete(svc.id);
-                                            const arr = Array.from(next);
-                                            setStaffServices(prev => ({ ...prev, [st.id]: arr }));
-                                          }}
-                                          style={{ marginRight: 6 }}
-                                        />
-                                        {svc.name}
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                                <div style={{ marginTop: 8 }}>
-                                  <button className="btn-secondary" onClick={() => saveStaffServices(st.id, staffServices[st.id] || [])}>Atamaları Kaydet</button>
-                                </div>
-                              </div>
+                              {/* Hizmet atama kontrolleri bu bloktan kaldırıldı. Eşleştirme en altta. */}
                             </div>
                           ))
                         )}
                       </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* Personel-Hizmet Eşleştirme - En altta */}
+              <div className="services-section" style={{ marginTop: 16 }}>
+                <div className="services-header">
+                  <h4>Personel–Hizmet Eşleştirme</h4>
+                </div>
+                {!(business.services && business.services.length) && (
+                  <div className="no-services">Önce hizmet ekleyin</div>
+                )}
+                {business.services && business.services.length > 0 && (
+                  <div className="matcher-wrapper" style={{ overflowX: 'auto' }}>
+                    {!(staffByBusiness[business.id] && staffByBusiness[business.id].length) ? (
+                      <div style={{ color: '#666' }}>Önce personel ekleyin ve Personeller bölümünden yönetin.</div>
+                    ) : (
+                      <table className="matcher-table" style={{ borderCollapse: 'collapse', minWidth: 520 }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'left', padding: '8px', borderBottom: '1px solid #eee' }}>Personel</th>
+                            {business.services.map(svc => (
+                              <th key={svc.id} style={{ padding: '8px', borderBottom: '1px solid #eee', whiteSpace: 'nowrap' }}>{svc.name}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {staffByBusiness[business.id].map(st => (
+                            <tr key={st.id}>
+                              <td style={{ padding: '8px', borderBottom: '1px solid #f2f2f2' }}>{st.name}</td>
+                              {business.services.map(svc => {
+                                const selected = (staffServices[st.id] || []).includes(svc.id);
+                                const busy = !!matcherSaving[st.id];
+                                return (
+                                  <td key={svc.id} style={{ textAlign: 'center', padding: '8px', borderBottom: '1px solid #f2f2f2' }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={selected}
+                                      disabled={busy}
+                                      onChange={(e) => toggleStaffServiceImmediate(st.id, svc.id, e.target.checked)}
+                                    />
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     )}
                   </div>
                 )}
