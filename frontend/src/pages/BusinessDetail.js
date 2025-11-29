@@ -98,8 +98,8 @@ const BusinessDetail = () => {
           <h1>{business.name}</h1>
           <p className="business-type">{business.type}</p>
           <p className="business-description">{business.description}</p>
-          <div className="business-details">
-            <p><strong>📍</strong> {business.address}</p>
+          <div className="business-meta">
+            <p><strong>📍</strong> {business.city ? `${business.city}` : ''}{business.district ? ` / ${business.district}` : ''} - {business.address}</p>
             <p><strong>📞</strong> {business.phone}</p>
             <p><strong>🕐</strong> {business.opening_time} - {business.closing_time}</p>
           </div>

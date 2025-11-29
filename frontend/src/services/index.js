@@ -4,15 +4,15 @@ export const authService = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   },
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   },
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    return !!sessionStorage.getItem('token');
   }
 };
 
@@ -56,4 +56,8 @@ export const staffService = {
   update: (staffId, data) => api.put(`/staff/${staffId}`, data),
   getServices: (staffId) => api.get(`/staff/${staffId}/services`),
   setServices: (staffId, service_ids) => api.post(`/staff/${staffId}/services`, { service_ids }),
+};
+
+export const locationService = {
+  getAll: () => api.get('/locations')
 };

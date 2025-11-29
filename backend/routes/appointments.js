@@ -97,11 +97,15 @@ router.post('/', auth, (req, res) => {
             return res.status(400).json({ error: 'Min notice not satisfied' });
           }
 
-          // Capable active staff
+          // Capable active staff - ordered by service count (fewer services first)
           db.all(
-            `SELECT st.id FROM staff st
+            `SELECT st.id, COUNT(ss_all.service_id) as service_count
+             FROM staff st
              JOIN staff_services ss ON ss.staff_id = st.id
-             WHERE st.business_id = ? AND st.active = 1 AND ss.service_id = ?`,
+             LEFT JOIN staff_services ss_all ON ss_all.staff_id = st.id
+             WHERE st.business_id = ? AND st.active = 1 AND ss.service_id = ?
+             GROUP BY st.id
+             ORDER BY service_count ASC`,
             [business_id, service_id],
             (err, staffRows) => {
               if (err) return res.status(500).json({ error: err.message });
@@ -224,11 +228,15 @@ router.post('/', auth, (req, res) => {
           return res.status(400).json({ error: 'Min notice not satisfied' });
         }
 
-        // Capable staff
+        // Capable staff - ordered by service count (fewer services first)
         db.all(
-          `SELECT st.id FROM staff st
+          `SELECT st.id, COUNT(ss_all.service_id) as service_count
+           FROM staff st
            JOIN staff_services ss ON ss.staff_id = st.id
-           WHERE st.business_id = ? AND st.active = 1 AND ss.service_id = ?`,
+           LEFT JOIN staff_services ss_all ON ss_all.staff_id = st.id
+           WHERE st.business_id = ? AND st.active = 1 AND ss.service_id = ?
+           GROUP BY st.id
+           ORDER BY service_count ASC`,
           [business_id, service_id],
           (err, staffRows) => {
             if (err) return res.status(500).json({ error: err.message });

@@ -5,7 +5,7 @@ const { auth, requireRole } = require('../middleware/auth');
 
 // Get all businesses (public)
 router.get('/', (req, res) => {
-  const { type, search } = req.query;
+  const { type, search, city, district } = req.query;
   let query = `
     SELECT b.*, 
            COALESCE(AVG(r.rating), 0) as average_rating,
@@ -19,6 +19,14 @@ router.get('/', (req, res) => {
   if (type) {
     conditions.push('b.type = ?');
     params.push(type);
+  }
+  if (city) {
+    conditions.push('b.city = ?');
+    params.push(city);
+  }
+  if (district) {
+    conditions.push('b.district = ?');
+    params.push(district);
   }
   if (search) {
     conditions.push('(b.name LIKE ? OR b.description LIKE ?)');
@@ -221,6 +229,8 @@ router.post('/', auth, requireRole('business_owner'), (req, res) => {
     name,
     type,
     description,
+    city,
+    district,
     address,
     phone,
     image_url,
@@ -233,9 +243,9 @@ router.post('/', auth, requireRole('business_owner'), (req, res) => {
   }
 
   db.run(
-    `INSERT INTO businesses (owner_id, name, type, description, address, phone, image_url, opening_time, closing_time)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [req.user.id, name, type, description, address, phone, image_url, opening_time, closing_time],
+    `INSERT INTO businesses (owner_id, name, type, description, city, district, address, phone, image_url, opening_time, closing_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [req.user.id, name, type, description, city, district, address, phone, image_url, opening_time, closing_time],
     function(err) {
       if (err) {
         return res.status(500).json({ error: err.message });
@@ -258,6 +268,8 @@ router.put('/:id', auth, requireRole('business_owner'), (req, res) => {
     name,
     type,
     description,
+    city,
+    district,
     address,
     phone,
     image_url,
@@ -276,10 +288,10 @@ router.put('/:id', auth, requireRole('business_owner'), (req, res) => {
 
     db.run(
       `UPDATE businesses 
-       SET name = ?, type = ?, description = ?, address = ?, phone = ?, 
+       SET name = ?, type = ?, description = ?, city = ?, district = ?, address = ?, phone = ?, 
            image_url = ?, opening_time = ?, closing_time = ?
        WHERE id = ?`,
-      [name, type, description, address, phone, image_url, opening_time, closing_time, businessId],
+      [name, type, description, city, district, address, phone, image_url, opening_time, closing_time, businessId],
       (err) => {
         if (err) {
           return res.status(500).json({ error: err.message });

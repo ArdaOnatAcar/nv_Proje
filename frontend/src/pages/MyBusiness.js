@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { businessService, serviceService, appointmentService, staffService } from '../services';
+import { businessService, serviceService, appointmentService, staffService, locationService } from '../services';
 import './MyBusiness.css';
 
 const MyBusiness = () => {
@@ -8,11 +8,15 @@ const MyBusiness = () => {
   const [showBusinessForm, setShowBusinessForm] = useState(false);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState(null);
+  const [cities, setCities] = useState([]);
+  const [districts, setDistricts] = useState({});
   // Composite creation draft state
   const [businessFormData, setBusinessFormData] = useState({
     name: '',
     type: 'berber',
     description: '',
+    city: '',
+    district: '',
     address: '',
     phone: '',
     image_url: '',
@@ -67,7 +71,18 @@ const MyBusiness = () => {
 
   useEffect(() => {
     fetchBusinesses();
+    fetchLocations();
   }, []);
+
+  const fetchLocations = async () => {
+    try {
+      const response = await locationService.getAll();
+      setCities(response.data.cities || []);
+      setDistricts(response.data.districts || {});
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    }
+  };
 
   const fetchBusinesses = async () => {
     try {
@@ -165,8 +180,8 @@ const MyBusiness = () => {
   };
 
   const validateComposite = () => {
-    const { name, type, description, address, phone, opening_time, closing_time } = businessFormData;
-    if (!name || !type || !description || !address || !phone || !opening_time || !closing_time) return 'Tüm işletme alanları (görsel hariç) zorunlu.';
+    const { name, type, description, city, district, address, phone, opening_time, closing_time } = businessFormData;
+    if (!name || !type || !description || !city || !district || !address || !phone || !opening_time || !closing_time) return 'Tüm işletme alanları (görsel hariç) zorunlu.';
     if (draftStaff.length === 0) return 'En az bir personel ekleyin.';
     if (draftServices.length === 0) return 'En az bir hizmet ekleyin.';
     // ensure each service has at least one staff assignment
@@ -220,7 +235,7 @@ const MyBusiness = () => {
       setShowBusinessForm(false);
       // reset draft states
       setBusinessFormData({
-        name: '', type: 'berber', description: '', address: '', phone: '', image_url: '', opening_time: '09:00', closing_time: '18:00'
+        name: '', type: 'berber', description: '', city: '', district: '', address: '', phone: '', image_url: '', opening_time: '09:00', closing_time: '18:00'
       });
       setDraftStaff([]); setDraftServices([]); setDraftAssignments({}); setNewStaffName(''); setNewService({ name:'', description:'', price:'', duration:'30' });
       fetchBusinesses();
@@ -317,7 +332,7 @@ const MyBusiness = () => {
       </div>
 
       {showBusinessForm && (
-        <div className="modal-overlay" onClick={() => !creatingComposite && setShowBusinessForm(false)}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
             <h2>Yeni İşletme Ekle (Tüm Bilgiler)</h2>
             {error && <div className="error-message" style={{ marginBottom: 16 }}>{error}</div>}
@@ -336,6 +351,20 @@ const MyBusiness = () => {
               <div className="form-group">
                 <label>Açıklama *</label>
                 <textarea rows="3" value={businessFormData.description} onChange={(e)=>setBusinessFormData({...businessFormData,description:e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Şehir *</label>
+                <select value={businessFormData.city} onChange={(e)=>setBusinessFormData({...businessFormData, city:e.target.value, district: ''})} required>
+                  <option value="">Şehir Seçiniz</option>
+                  {cities.map(city => <option key={city} value={city}>{city}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>İlçe *</label>
+                <select value={businessFormData.district} onChange={(e)=>setBusinessFormData({...businessFormData,district:e.target.value})} required disabled={!businessFormData.city}>
+                  <option value="">İlçe Seçiniz</option>
+                  {businessFormData.city && districts[businessFormData.city]?.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+                </select>
               </div>
               <div className="form-group">
                 <label>Adres *</label>
@@ -487,7 +516,7 @@ const MyBusiness = () => {
       )}
 
       {showServiceForm && (
-        <div className="modal-overlay" onClick={() => setShowServiceForm(false)}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Yeni Hizmet Ekle</h2>
             {error && <div className="error-message">{error}</div>}
@@ -764,7 +793,7 @@ const MyBusiness = () => {
       )}
 
       {showOwnerBookingForm && (
-        <div className="modal-overlay" onClick={() => setShowOwnerBookingForm(false)}>
+        <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Yeni Randevu (Owner)</h2>
             {ownerBookingError && <div className="error-message">{ownerBookingError}</div>}
