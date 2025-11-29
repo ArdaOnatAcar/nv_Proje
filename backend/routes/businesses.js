@@ -5,7 +5,7 @@ const { auth, requireRole } = require('../middleware/auth');
 
 // Get all businesses (public)
 router.get('/', (req, res) => {
-  const { type, search, city, district } = req.query;
+  const { type, search, city, district, sort, reviewCountRange, minRating } = req.query;
   let query = `
     SELECT b.*, 
            COALESCE(AVG(r.rating), 0) as average_rating,
@@ -37,7 +37,31 @@ router.get('/', (req, res) => {
     query += ' WHERE ' + conditions.join(' AND ');
   }
 
-  query += ' GROUP BY b.id ORDER BY b.created_at DESC';
+  query += ' GROUP BY b.id';
+
+  // Filtering by rating threshold
+  let havingClauses = [];
+  if (minRating) {
+    const val = parseFloat(minRating);
+    if (!isNaN(val)) havingClauses.push('AVG(r.rating) >= ' + val);
+  }
+  if (reviewCountRange) {
+    if (reviewCountRange === '0-50') havingClauses.push('COUNT(DISTINCT r.id) BETWEEN 0 AND 50');
+    else if (reviewCountRange === '50-200') havingClauses.push('COUNT(DISTINCT r.id) BETWEEN 51 AND 200');
+    else if (reviewCountRange === '200+') havingClauses.push('COUNT(DISTINCT r.id) >= 201');
+  }
+  if (havingClauses.length) {
+    query += ' HAVING ' + havingClauses.join(' AND ');
+  }
+
+  // Sorting
+  if (sort === 'rating') {
+    query += ' ORDER BY AVG(r.rating) DESC, COUNT(DISTINCT r.id) DESC';
+  } else if (sort === 'reviews') {
+    query += ' ORDER BY COUNT(DISTINCT r.id) DESC, AVG(r.rating) DESC';
+  } else {
+    query += ' ORDER BY b.created_at DESC';
+  }
 
   db.all(query, params, (err, businesses) => {
     if (err) {

@@ -136,10 +136,18 @@ const BusinessDetail = () => {
             <p><strong>📞</strong> {business.phone}</p>
             <p><strong>🕐</strong> {business.opening_time} - {business.closing_time}</p>
           </div>
-          <div className="business-rating">
-            <span className="stars">{'⭐'.repeat(Math.round(business.average_rating))}</span>
-            <span className="rating-value">{business.average_rating > 0 ? business.average_rating.toFixed(1) : 'Henüz değerlendirme yok'}</span>
-            <span className="review-count">({business.review_count} yorum)</span>
+          <div className="business-rating" style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span className="stars">{'⭐'.repeat(Math.round(business.average_rating))}</span>
+              <span className="rating-value">{business.average_rating > 0 ? business.average_rating.toFixed(1) : 'Henüz değerlendirme yok'}</span>
+              <span className="review-count">({business.review_count} yorum)</span>
+            </div>
+            {business.review_count > 0 && (
+              <button type="button" className="btn-see-reviews" onClick={()=>{
+                const el = document.getElementById('reviews');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}>Tüm yorumları gör ↓</button>
+            )}
           </div>
         </div>
       </div>
@@ -243,7 +251,7 @@ const BusinessDetail = () => {
           )}
         </div>
 
-        <div className="reviews-section">
+        <div className="reviews-section" id="reviews">
           <h2>Yorumlar</h2>
           {business.reviews && business.reviews.length > 0 ? (
             <div className="reviews-list">
@@ -252,6 +260,24 @@ const BusinessDetail = () => {
                   <div className="review-header">
                     <span className="reviewer-name">{review.customer_name}</span>
                     <span className="review-rating">{'⭐'.repeat(review.rating)}</span>
+                    {isAuthenticated && user?.role==='customer' && review.customer_id === user.id && (
+                      <div className="review-actions">
+                        <button className="btn-review-edit" onClick={async ()=>{
+                          const ratingStr = prompt('Yeni puan (1-5):', String(review.rating));
+                          if (ratingStr == null) return; const r = parseInt(ratingStr,10);
+                          if (!r || r<1 || r>5) { alert('Geçersiz puan'); return; }
+                          const comment = prompt('Yorum düzenle:', review.comment || '') || '';
+                          try {
+                            await reviewService.update(review.id, { rating: r, comment });
+                            await fetchBusiness();
+                          } catch(e){ alert(e.response?.data?.error || 'Yorum güncellenemedi'); }
+                        }}>Düzenle</button>
+                        <button className="btn-review-delete" onClick={async ()=>{
+                          if(!window.confirm('Yorumu silmek istiyor musunuz?')) return;
+                          try { await reviewService.delete(review.id); await fetchBusiness(); } catch(e){ alert(e.response?.data?.error || 'Yorum silinemedi'); }
+                        }}>Sil</button>
+                      </div>
+                    )}
                   </div>
                   <p className="review-comment">{review.comment}</p>
                   <span className="review-date">

@@ -11,6 +11,9 @@ const Home = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [districtFilter, setDistrictFilter] = useState('');
+  const [sortMode, setSortMode] = useState('');
+  const [ratingFilter, setRatingFilter] = useState('');
+  const [reviewCountRange, setReviewCountRange] = useState('');
   const [cities, setCities] = useState([]);
   const [districts, setDistricts] = useState({});
   const [favoriteIds, setFavoriteIds] = useState([]);
@@ -44,6 +47,9 @@ const Home = () => {
       if (cityFilter) params.city = cityFilter;
       if (districtFilter) params.district = districtFilter;
       if (search) params.search = search;
+      if (sortMode) params.sort = sortMode;
+      if (ratingFilter) params.minRating = ratingFilter;
+      if (reviewCountRange) params.reviewCountRange = reviewCountRange;
       
       const response = await businessService.getAll(params);
       setBusinesses(response.data);
@@ -96,7 +102,7 @@ const Home = () => {
       </div>
 
       <div className="search-section">
-        <form onSubmit={handleSearch} className="search-form">
+        <form onSubmit={handleSearch} className="search-form" style={{ flexWrap:'wrap' }}>
           <select 
             value={cityFilter} 
             onChange={(e) => { setCityFilter(e.target.value); setDistrictFilter(''); }}
@@ -136,6 +142,35 @@ const Home = () => {
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
           />
+          <select 
+            value={sortMode} 
+            onChange={(e)=>setSortMode(e.target.value)}
+            className="type-filter"
+          >
+            <option value="">Varsayılan Sıralama</option>
+            <option value="rating">Puana Göre</option>
+            <option value="reviews">Yorum Sayısına Göre</option>
+          </select>
+          <select 
+            value={ratingFilter} 
+            onChange={(e)=>setRatingFilter(e.target.value)}
+            className="type-filter"
+          >
+            <option value="">Min Puan Yok</option>
+            <option value="4.5">4.5+</option>
+            <option value="4">4.0+</option>
+            <option value="3">3.0+</option>
+          </select>
+          <select 
+            value={reviewCountRange} 
+            onChange={(e)=>setReviewCountRange(e.target.value)}
+            className="type-filter"
+          >
+            <option value="">Yorum Sayısı (Hepsi)</option>
+            <option value="0-50">0-50</option>
+            <option value="50-200">51-200</option>
+            <option value="200+">200+</option>
+          </select>
           <button type="submit" className="btn-search">Ara</button>
         </form>
       </div>
@@ -180,10 +215,12 @@ const Home = () => {
                     {business.address ? ` - ${business.address}` : ''}
                   </p>
                   <div className="business-rating">
-                    <span className="stars">{'⭐'.repeat(Math.round(business.average_rating))}</span>
-                    <span className="rating-value">
-                      {business.average_rating > 0 ? business.average_rating.toFixed(1) : 'Henüz değerlendirme yok'}
-                    </span>
+                    {business.average_rating > 0 && (
+                      <>
+                        <span className="stars">{'⭐'.repeat(Math.round(business.average_rating))}</span>
+                        <span className="rating-value">{business.average_rating.toFixed(1)}</span>
+                      </>
+                    )}
                     <span className="review-count">({business.review_count} yorum)</span>
                   </div>
                 </div>
