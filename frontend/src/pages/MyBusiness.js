@@ -330,21 +330,22 @@ const MyBusiness = () => {
     <div className="my-business-container">
       <div className="page-header">
         <h1>İşletmelerim</h1>
-        <button 
-          onClick={() => setShowBusinessForm(true)} 
-          className="btn-primary btn-compact"
-        >
-          + Yeni İşletme Ekle
-        </button>
-        {businesses.length > 0 && (
-          <button
-            onClick={() => setShowOwnerBookingForm(true)}
-            className="btn-primary btn-compact"
-            style={{ marginLeft: 8 }}
+        <div className="header-actions">
+          <button 
+            onClick={() => setShowBusinessForm(true)} 
+            className="btn-header-action"
           >
-            + Yeni Randevu Ekle
+            + Yeni İşletme Ekle
           </button>
-        )}
+          {businesses.length > 0 && (
+            <button
+              onClick={() => setShowOwnerBookingForm(true)}
+              className="btn-header-action"
+            >
+              + Yeni Randevu Ekle
+            </button>
+          )}
+        </div>
       </div>
 
       {showBusinessForm && (
