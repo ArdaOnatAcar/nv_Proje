@@ -42,7 +42,7 @@ app.listen(PORT, () => {
   const runCleanup = () => {
     // Delete appointments whose appointment_date is earlier than (today - 1 day)
     // Using SQLite date functions; safe for all statuses
-    const sql = `DELETE FROM appointments WHERE appointment_date < DATE('now', '-1 day')`;
+    const sql = `DELETE FROM appointments WHERE appointment_date < DATE('now', '-30 day')`;
     db.run(sql, [], function(err) {
       if (err) {
         console.error('Cleanup error (appointments):', err.message);
