@@ -25,6 +25,8 @@ export const businessService = {
   getMyBusinesses: () => api.get('/businesses/owner/my-businesses'),
   // Unified availability endpoint (service-aware, staff-aware)
   getAvailability: (businessId, params) => api.get(`/businesses/${businessId}/availability`, { params }),
+  getSettings: (businessId) => api.get(`/businesses/${businessId}/settings`),
+  updateSettings: (businessId, data) => api.put(`/businesses/${businessId}/settings`, data),
 };
 
 export const serviceService = {

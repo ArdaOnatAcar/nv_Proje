@@ -279,7 +279,18 @@ router.post('/', auth, requireRole('business_owner'), (req, res) => {
         if (err) {
           return res.status(500).json({ error: err.message });
         }
-        res.status(201).json(business);
+        // Ensure a default settings row exists
+        db.run(
+          'INSERT OR IGNORE INTO business_settings (business_id, slot_interval_minutes, min_notice_minutes, booking_window_days) VALUES (?, 15, 60, 30)',
+          [business.id],
+          (err2) => {
+            if (err2) {
+              // Non-fatal: return business even if settings insert fails
+              return res.status(201).json(business);
+            }
+            res.status(201).json(business);
+          }
+        );
       });
     }
   );
@@ -350,6 +361,62 @@ router.delete('/:id', auth, requireRole('business_owner'), (req, res) => {
       }
       res.json({ message: 'Business deleted successfully' });
     });
+  });
+});
+
+// Get business booking settings (owner only)
+router.get('/:id/settings', auth, requireRole('business_owner'), (req, res) => {
+  const businessId = parseInt(req.params.id, 10);
+  db.get('SELECT 1 FROM businesses WHERE id = ? AND owner_id = ?', [businessId, req.user.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(403).json({ error: 'Access denied' });
+
+    db.get('SELECT slot_interval_minutes, min_notice_minutes, booking_window_days FROM business_settings WHERE business_id = ?', [businessId], (err2, settings) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      if (!settings) {
+        return res.json({ slot_interval_minutes: 15, min_notice_minutes: 60, booking_window_days: 30 });
+      }
+      res.json(settings);
+    });
+  });
+});
+
+// Update business booking settings (owner only)
+router.put('/:id/settings', auth, requireRole('business_owner'), (req, res) => {
+  const businessId = parseInt(req.params.id, 10);
+  const { slot_interval_minutes, min_notice_minutes, booking_window_days } = req.body;
+
+  const toInt = (v) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : null;
+  };
+  const sim = toInt(slot_interval_minutes);
+  const mnm = toInt(min_notice_minutes);
+  const bwd = toInt(booking_window_days);
+  if (sim == null || mnm == null || bwd == null) {
+    return res.status(400).json({ error: 'All settings must be integers' });
+  }
+  if (sim <= 0 || mnm < 0 || bwd <= 0) {
+    return res.status(400).json({ error: 'Invalid settings values' });
+  }
+
+  db.get('SELECT 1 FROM businesses WHERE id = ? AND owner_id = ?', [businessId, req.user.id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(403).json({ error: 'Access denied' });
+
+    db.run(
+      `INSERT INTO business_settings (business_id, slot_interval_minutes, min_notice_minutes, booking_window_days)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(business_id) DO UPDATE SET
+         slot_interval_minutes = excluded.slot_interval_minutes,
+         min_notice_minutes = excluded.min_notice_minutes,
+         booking_window_days = excluded.booking_window_days`,
+      [businessId, sim, mnm, bwd],
+      (err2) => {
+        if (err2) return res.status(500).json({ error: err2.message });
+        res.json({ slot_interval_minutes: sim, min_notice_minutes: mnm, booking_window_days: bwd });
+      }
+    );
   });
 });
 

@@ -23,6 +23,7 @@ const MyBusiness = () => {
     opening_time: '09:00',
     closing_time: '18:00'
   });
+  const [bookingSettingsDraft, setBookingSettingsDraft] = useState({ slot_interval_minutes: 15, min_notice_minutes: 60, booking_window_days: 30 });
   const [draftStaff, setDraftStaff] = useState([]); // [{name: ''}]
   const [newStaffName, setNewStaffName] = useState('');
   const [draftServices, setDraftServices] = useState([]); // [{name, description, price, duration}]
@@ -53,6 +54,7 @@ const MyBusiness = () => {
     opening_time: '09:00',
     closing_time: '18:00'
   });
+  const [editingSettings, setEditingSettings] = useState({ slot_interval_minutes: 15, min_notice_minutes: 60, booking_window_days: 30 });
 
 
   // Owner manual booking modal state
@@ -221,6 +223,10 @@ const MyBusiness = () => {
       // 1. Create business
       const bizResp = await businessService.create(businessFormData);
       const businessId = bizResp.data.id;
+      // 1b. Save booking settings
+      try {
+        await businessService.updateSettings(businessId, bookingSettingsDraft);
+      } catch (_) { /* non-fatal */ }
       // 2. Create staff and map indices
       const staffIdMap = [];
       for (let i = 0; i < draftStaff.length; i++) {
@@ -253,6 +259,7 @@ const MyBusiness = () => {
       setBusinessFormData({
         name: '', type: 'berber', description: '', city: '', district: '', address: '', phone: '', image_url: '', opening_time: '09:00', closing_time: '18:00'
       });
+      setBookingSettingsDraft({ slot_interval_minutes: 15, min_notice_minutes: 60, booking_window_days: 30 });
       setDraftStaff([]); setDraftServices([]); setDraftAssignments({}); setNewStaffName(''); setNewService({ name:'', description:'', price:'', duration:'30' });
       fetchBusinesses();
     } catch (e) {
@@ -404,6 +411,26 @@ const MyBusiness = () => {
               <div className="form-group">
                 <label>Görsel URL (Opsiyonel)</label>
                 <input type="url" value={businessFormData.image_url} onChange={(e)=>setBusinessFormData({...businessFormData,image_url:e.target.value})} />
+              </div>
+            </section>
+            <section style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Rezervasyon Ayarları</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Slot Aralığı (dk)</label>
+                  <input type="number" value={bookingSettingsDraft.slot_interval_minutes}
+                         onChange={(e)=>setBookingSettingsDraft({ ...bookingSettingsDraft, slot_interval_minutes: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Minimum Bildirim (dk)</label>
+                  <input type="number" value={bookingSettingsDraft.min_notice_minutes}
+                         onChange={(e)=>setBookingSettingsDraft({ ...bookingSettingsDraft, min_notice_minutes: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Rezervasyon Penceresi (gün)</label>
+                  <input type="number" value={bookingSettingsDraft.booking_window_days}
+                         onChange={(e)=>setBookingSettingsDraft({ ...bookingSettingsDraft, booking_window_days: e.target.value })} />
+                </div>
               </div>
             </section>
             <section style={{ borderBottom: '1px solid #eee', paddingBottom: 12, marginBottom: 12 }}>
@@ -643,6 +670,19 @@ const MyBusiness = () => {
                         opening_time: business.opening_time || '09:00',
                         closing_time: business.closing_time || '18:00'
                       });
+                      // Load settings for edit modal
+                      (async () => {
+                        try {
+                          const s = await businessService.getSettings(business.id);
+                          setEditingSettings({
+                            slot_interval_minutes: s.data?.slot_interval_minutes ?? 15,
+                            min_notice_minutes: s.data?.min_notice_minutes ?? 60,
+                            booking_window_days: s.data?.booking_window_days ?? 30
+                          });
+                        } catch (_) {
+                          setEditingSettings({ slot_interval_minutes: 15, min_notice_minutes: 60, booking_window_days: 30 });
+                        }
+                      })();
                       setShowEditForm(true);
                     }} 
                     className="btn-secondary"
@@ -1022,12 +1062,37 @@ const MyBusiness = () => {
               <input type="url" value={editFormData.image_url} onChange={(e)=>setEditFormData({...editFormData,image_url:e.target.value})} />
             </div>
 
+            <section style={{ borderTop: '1px solid #eee', paddingTop: 12, marginTop: 12 }}>
+              <h3 style={{ marginTop: 0 }}>Rezervasyon Ayarları</h3>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Slot Aralığı (dk)</label>
+                  <input type="number" value={editingSettings.slot_interval_minutes}
+                         onChange={(e)=>setEditingSettings({ ...editingSettings, slot_interval_minutes: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Minimum Bildirim (dk)</label>
+                  <input type="number" value={editingSettings.min_notice_minutes}
+                         onChange={(e)=>setEditingSettings({ ...editingSettings, min_notice_minutes: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Rezervasyon Penceresi (gün)</label>
+                  <input type="number" value={editingSettings.booking_window_days}
+                         onChange={(e)=>setEditingSettings({ ...editingSettings, booking_window_days: e.target.value })} />
+                </div>
+              </div>
+            </section>
+
             <div className="form-actions">
               <button className="btn-secondary" onClick={() => setShowEditForm(false)}>İptal</button>
               <button className="btn-primary" onClick={async ()=>{
                 setError('');
                 try {
                   await businessService.update(editingBusinessId, editFormData);
+                  // Save booking settings
+                  try {
+                    await businessService.updateSettings(editingBusinessId, editingSettings);
+                  } catch (_) { /* ignore non-fatal */ }
                   setShowEditForm(false);
                   setEditingBusinessId(null);
                   await fetchBusinesses();
