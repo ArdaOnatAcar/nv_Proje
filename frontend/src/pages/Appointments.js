@@ -54,6 +54,19 @@ const Appointments = () => {
     });
   }, [appointments, selectedBusiness, selectedStatus]);
 
+  const isExpired = (appointment) => {
+    try {
+      const today = new Date();
+      const apptDate = new Date(appointment.appointment_date);
+      // Compare by date part only
+      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const apptYMD = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate());
+      return apptYMD < todayYMD;
+    } catch (e) {
+      return false;
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusMap = {
       pending: { label: 'Beklemede', class: 'status-pending' },
@@ -109,8 +122,9 @@ const Appointments = () => {
             const displayEmail = appointment.account_customer_email || appointment.customer_email || '';
             const displayStart = appointment.start_time || appointment.appointment_time;
             const displayEnd = appointment.end_time ? ` - ${appointment.end_time}` : '';
+            const expired = isExpired(appointment);
             return (
-            <div key={appointment.id} className="appointment-card">
+            <div key={appointment.id} className={`appointment-card${expired ? ' expired' : ''}`}>
               <div className="appointment-header">
                 <h3>{appointment.business_name}</h3>
                 {getStatusBadge(appointment.status)}
@@ -121,7 +135,12 @@ const Appointments = () => {
               
               <div className="appointment-details">
                 <p><strong>Hizmet:</strong> {appointment.service_name}</p>
-                <p><strong>Tarih:</strong> {new Date(appointment.appointment_date).toLocaleDateString('tr-TR')}</p>
+                <p>
+                  <strong>Tarih:</strong> {new Date(appointment.appointment_date).toLocaleDateString('tr-TR')}
+                  {expired && (
+                    <span className="expired-badge" style={{ marginLeft: 8 }}>Tarihi geçti</span>
+                  )}
+                </p>
                 <p><strong>Saat:</strong> {displayStart}{displayEnd}</p>
                 <p><strong>Süre:</strong> {appointment.duration} dakika</p>
                 <p><strong>Fiyat:</strong> {appointment.price} TL</p>
@@ -139,7 +158,7 @@ const Appointments = () => {
               </div>
 
               <div className="appointment-actions">
-                {appointment.status === 'pending' && (
+                {appointment.status === 'pending' && !expired && (
                   <>
                     {user.role === 'business_owner' && (
                       <button 
@@ -157,7 +176,7 @@ const Appointments = () => {
                     </button>
                   </>
                 )}
-                {appointment.status === 'confirmed' && user.role === 'business_owner' && (
+                {appointment.status === 'confirmed' && user.role === 'business_owner' && !expired && (
                   <button 
                     onClick={() => handleStatusChange(appointment.id, 'completed')}
                     className="btn-complete"
