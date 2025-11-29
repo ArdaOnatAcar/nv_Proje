@@ -36,7 +36,8 @@
 }
 
 .appointment-card.expired {
-  opacity: 0.6;
+  background: #fafafa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .expired-badge {
