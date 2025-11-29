@@ -114,6 +114,19 @@ function initializeDatabase() {
     )
   `);
 
+  // Favorites (bookmark) table: one row per customer-business favorite
+  db.run(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      business_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(customer_id, business_id),
+      FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+    )
+  `);
+
   // New tables for owner manual bookings and staff scheduling
   db.run(`
     CREATE TABLE IF NOT EXISTS business_settings (

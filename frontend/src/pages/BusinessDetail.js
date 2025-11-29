@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { businessService, appointmentService } from '../services';
+import { businessService, appointmentService, favoritesService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import './BusinessDetail.css';
 
@@ -17,6 +17,7 @@ const BusinessDetail = () => {
   const [notes, setNotes] = useState('');
   const [bookingError, setBookingError] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [favorite, setFavorite] = useState(false);
 
   const fetchBusiness = useCallback(async () => {
     try {
@@ -31,6 +32,12 @@ const BusinessDetail = () => {
 
   useEffect(() => {
     fetchBusiness();
+    // Load favorite state if customer and authenticated
+    if (isAuthenticated && user?.role === 'customer') {
+      favoritesService.listIds()
+        .then(r => setFavorite(r.data.includes(parseInt(id))))
+        .catch(() => {});
+    }
   }, [fetchBusiness]);
 
   const fetchAvailableSlots = useCallback(async () => {
@@ -84,6 +91,21 @@ const BusinessDetail = () => {
   if (loading) return <div className="loading">Yükleniyor...</div>;
   if (!business) return <div className="error">İşletme bulunamadı</div>;
 
+  const toggleFavorite = async () => {
+    if (!isAuthenticated || user?.role !== 'customer') return;
+    try {
+      if (favorite) {
+        await favoritesService.remove(parseInt(id));
+        setFavorite(false);
+      } else {
+        await favoritesService.add(parseInt(id));
+        setFavorite(true);
+      }
+    } catch (e) {
+      console.error('Favori değiştirilemedi', e);
+    }
+  };
+
   return (
     <div className="business-detail-container">
       <div className="business-header">
@@ -95,7 +117,18 @@ const BusinessDetail = () => {
           )}
         </div>
         <div className="business-header-info">
-          <h1>{business.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h1 style={{ margin: 0 }}>{business.name}</h1>
+            {isAuthenticated && user?.role === 'customer' && (
+              <button 
+                className={`favorite-heart-detail${favorite ? ' favorited' : ''}`}
+                onClick={toggleFavorite}
+                aria-label={favorite ? 'Favoriden çıkar' : 'Favorilere ekle'}
+              >
+                {favorite ? '❤' : '♡'}
+              </button>
+            )}
+          </div>
           <p className="business-type">{business.type}</p>
           <p className="business-description">{business.description}</p>
           <div className="business-meta">

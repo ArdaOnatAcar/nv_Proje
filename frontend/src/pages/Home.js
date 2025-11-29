@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { businessService, locationService } from '../services';
+import { businessService, locationService, favoritesService } from '../services';
+import { useAuth } from '../contexts/AuthContext';
 import './Home.css';
 
 const Home = () => {
@@ -12,6 +13,8 @@ const Home = () => {
   const [districtFilter, setDistrictFilter] = useState('');
   const [cities, setCities] = useState([]);
   const [districts, setDistricts] = useState({});
+  const [favoriteIds, setFavoriteIds] = useState([]);
+  const { user, isAuthenticated } = useAuth();
 
   const businessTypes = [
     { value: '', label: 'Tüm İşletmeler' },
@@ -53,7 +56,32 @@ const Home = () => {
 
   useEffect(() => {
     fetchBusinesses();
+    // Fetch favorites if authenticated customer
+    if (isAuthenticated && user?.role === 'customer') {
+      favoritesService.listIds()
+        .then(r => setFavoriteIds(r.data))
+        .catch(err => console.error('Error fetching favorites', err));
+    } else {
+      setFavoriteIds([]);
+    }
   }, [fetchBusinesses]);
+
+  const toggleFavorite = async (e, businessId, currentlyFav) => {
+    e.preventDefault(); // prevent navigation via Link
+    e.stopPropagation();
+    if (!isAuthenticated || user?.role !== 'customer') return; // ignore
+    try {
+      if (currentlyFav) {
+        await favoritesService.remove(businessId);
+        setFavoriteIds(favoriteIds.filter(id => id !== businessId));
+      } else {
+        await favoritesService.add(businessId);
+        setFavoriteIds([...favoriteIds, businessId]);
+      }
+    } catch (error) {
+      console.error('Favorite toggle error', error);
+    }
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -119,12 +147,23 @@ const Home = () => {
           <p className="no-results">İşletme bulunamadı</p>
         ) : (
           <div className="business-grid">
-            {businesses.map((business) => (
+            {businesses.map((business) => {
+              const isFav = favoriteIds.includes(business.id);
+              return (
               <Link 
                 to={`/business/${business.id}`} 
                 key={business.id} 
                 className="business-card"
               >
+                {isAuthenticated && user?.role === 'customer' && (
+                  <button 
+                    className={`favorite-heart${isFav ? ' favorited' : ''}`}
+                    onClick={(e) => toggleFavorite(e, business.id, isFav)}
+                    aria-label={isFav ? 'Favoriden çıkar' : 'Favorilere ekle'}
+                  >
+                    {isFav ? '❤' : '♡'}
+                  </button>
+                )}
                 <div className="business-image">
                   {business.image_url ? (
                     <img src={business.image_url} alt={business.name} />
@@ -149,7 +188,7 @@ const Home = () => {
                   </div>
                 </div>
               </Link>
-            ))}
+            );})}
           </div>
         )}
       </div>

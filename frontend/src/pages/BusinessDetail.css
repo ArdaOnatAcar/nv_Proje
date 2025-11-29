@@ -48,6 +48,30 @@
   color: #333;
 }
 
+.favorite-heart-detail {
+  background: #fff;
+  border: 1px solid #eee;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: background 0.3s, transform 0.2s;
+}
+
+.favorite-heart-detail:hover {
+  background: #f7f7f7;
+  transform: scale(1.05);
+}
+
+.favorite-heart-detail.favorited {
+  color: #e0245e;
+}
+
 .business-type {
   color: #4a90e2;
   font-size: 16px;

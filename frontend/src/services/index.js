@@ -61,3 +61,11 @@ export const staffService = {
 export const locationService = {
   getAll: () => api.get('/locations')
 };
+
+// Favorites (bookmarks) service
+export const favoritesService = {
+  list: () => api.get('/favorites'), // detailed businesses
+  listIds: () => api.get('/favorites/ids'),
+  add: (businessId) => api.post(`/favorites/${businessId}`),
+  remove: (businessId) => api.delete(`/favorites/${businessId}`)
+};

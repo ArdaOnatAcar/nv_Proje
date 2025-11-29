@@ -35,6 +35,7 @@ const Navbar = () => {
             ) : (
               <>
                 <NavLink to="/" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Ana Sayfa</NavLink>
+                <NavLink to="/favorites" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Favorilerim</NavLink>
                 <NavLink to="/appointments" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>Randevularım</NavLink>
                 <div className="user-menu">
                   <span className="user-name">Hoş geldin, {user?.name}</span>
