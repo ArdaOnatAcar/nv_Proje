@@ -176,14 +176,7 @@ const Appointments = () => {
                     </button>
                   </>
                 )}
-                {appointment.status === 'confirmed' && user.role === 'business_owner' && !expired && (
-                  <button 
-                    onClick={() => handleStatusChange(appointment.id, 'completed')}
-                    className="btn-complete"
-                  >
-                    Tamamlandı Olarak İşaretle
-                  </button>
-                )}
+                {/* İşletme tarafında tamamlandı butonu gereksiz: kaldırıldı */}
               </div>
             </div>
           );})}

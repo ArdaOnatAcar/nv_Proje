@@ -15,6 +15,7 @@ router.get('/my-appointments', auth, (req, res) => {
       JOIN businesses b ON a.business_id = b.id
       JOIN services s ON a.service_id = s.id
       WHERE a.customer_id = ?
+        AND a.appointment_date >= DATE('now', '-30 day')
       ORDER BY a.appointment_date DESC, a.appointment_time DESC
     `;
   } else if (req.user.role === 'business_owner') {
@@ -29,6 +30,7 @@ router.get('/my-appointments', auth, (req, res) => {
       JOIN services s ON a.service_id = s.id
       LEFT JOIN users u ON a.customer_id = u.id
       WHERE b.owner_id = ?
+        AND a.appointment_date >= DATE('now', '-1 day')
       ORDER BY a.appointment_date DESC, a.appointment_time DESC
     `;
   }
