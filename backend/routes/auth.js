@@ -65,8 +65,18 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    
+    // If password is bcrypt hash, use bcrypt; otherwise allow plain-text match (for dummy/dev data)
+    let isValidPassword = false;
+    try {
+      if (typeof user.password === 'string' && user.password.startsWith('$2')) {
+        isValidPassword = await bcrypt.compare(password, user.password);
+      } else {
+        isValidPassword = password === user.password;
+      }
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
+
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
