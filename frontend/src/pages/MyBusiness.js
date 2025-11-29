@@ -38,6 +38,22 @@ const MyBusiness = () => {
   });
   const [error, setError] = useState('');
 
+  // Edit business modal state
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingBusinessId, setEditingBusinessId] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    type: 'berber',
+    description: '',
+    city: '',
+    district: '',
+    address: '',
+    phone: '',
+    image_url: '',
+    opening_time: '09:00',
+    closing_time: '18:00'
+  });
+
 
   // Owner manual booking modal state
   const [showOwnerBookingForm, setShowOwnerBookingForm] = useState(false);
@@ -316,14 +332,14 @@ const MyBusiness = () => {
         <h1>İşletmelerim</h1>
         <button 
           onClick={() => setShowBusinessForm(true)} 
-          className="btn-primary"
+          className="btn-primary btn-compact"
         >
           + Yeni İşletme Ekle
         </button>
         {businesses.length > 0 && (
           <button
             onClick={() => setShowOwnerBookingForm(true)}
-            className="btn-primary"
+            className="btn-primary btn-compact"
             style={{ marginLeft: 8 }}
           >
             + Yeni Randevu Ekle
@@ -610,12 +626,35 @@ const MyBusiness = () => {
             <div key={business.id} className="business-card">
               <div className="business-card-header">
                 <h3>{business.name}</h3>
-                <button 
-                  onClick={() => handleDeleteBusiness(business.id)} 
-                  className="btn-delete"
-                >
-                  Sil
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button 
+                    onClick={() => {
+                      setEditingBusinessId(business.id);
+                      setEditFormData({
+                        name: business.name || '',
+                        type: business.type || 'berber',
+                        description: business.description || '',
+                        city: business.city || '',
+                        district: business.district || '',
+                        address: business.address || '',
+                        phone: business.phone || '',
+                        image_url: business.image_url || '',
+                        opening_time: business.opening_time || '09:00',
+                        closing_time: business.closing_time || '18:00'
+                      });
+                      setShowEditForm(true);
+                    }} 
+                    className="btn-secondary"
+                  >
+                    Düzenle
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteBusiness(business.id)} 
+                    className="btn-delete"
+                  >
+                    Sil
+                  </button>
+                </div>
               </div>
               <p className="business-type">{business.type}</p>
               <p className="business-description">{business.description}</p>
@@ -920,6 +959,81 @@ const MyBusiness = () => {
               >
                 Kaydet
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditForm && (
+        <div className="modal-overlay" onClick={() => setShowEditForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+            <h2>İşletme Bilgilerini Düzenle</h2>
+            {error && <div className="error-message" style={{ marginBottom: 16 }}>{error}</div>}
+
+            <div className="form-group">
+              <label>İşletme Adı *</label>
+              <input type="text" value={editFormData.name} onChange={(e)=>setEditFormData({...editFormData,name:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label>Tür *</label>
+              <select value={editFormData.type} onChange={(e)=>setEditFormData({...editFormData,type:e.target.value})}>
+                {businessTypes.map(bt => <option key={bt.value} value={bt.value}>{bt.label}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Açıklama *</label>
+              <textarea rows="3" value={editFormData.description} onChange={(e)=>setEditFormData({...editFormData,description:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label>Şehir *</label>
+              <select value={editFormData.city} onChange={(e)=>setEditFormData({...editFormData, city:e.target.value, district: ''})}>
+                <option value="">Şehir Seçiniz</option>
+                {cities.map(city => <option key={city} value={city}>{city}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>İlçe *</label>
+              <select value={editFormData.district} onChange={(e)=>setEditFormData({...editFormData,district:e.target.value})} disabled={!editFormData.city}>
+                <option value="">İlçe Seçiniz</option>
+                {editFormData.city && districts[editFormData.city]?.map(dist => <option key={dist} value={dist}>{dist}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Adres *</label>
+              <input type="text" value={editFormData.address} onChange={(e)=>setEditFormData({...editFormData,address:e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label>Telefon *</label>
+              <input type="tel" value={editFormData.phone} onChange={(e)=>setEditFormData({...editFormData,phone:e.target.value})} />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Açılış Saati *</label>
+                <input type="time" value={editFormData.opening_time} onChange={(e)=>setEditFormData({...editFormData,opening_time:e.target.value})} />
+              </div>
+              <div className="form-group">
+                <label>Kapanış Saati *</label>
+                <input type="time" value={editFormData.closing_time} onChange={(e)=>setEditFormData({...editFormData,closing_time:e.target.value})} />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Görsel URL</label>
+              <input type="url" value={editFormData.image_url} onChange={(e)=>setEditFormData({...editFormData,image_url:e.target.value})} />
+            </div>
+
+            <div className="form-actions">
+              <button className="btn-secondary" onClick={() => setShowEditForm(false)}>İptal</button>
+              <button className="btn-primary" onClick={async ()=>{
+                setError('');
+                try {
+                  await businessService.update(editingBusinessId, editFormData);
+                  setShowEditForm(false);
+                  setEditingBusinessId(null);
+                  await fetchBusinesses();
+                } catch (e) {
+                  setError(e.response?.data?.error || 'İşletme güncellenemedi');
+                }
+              }}>Kaydet</button>
             </div>
           </div>
         </div>
