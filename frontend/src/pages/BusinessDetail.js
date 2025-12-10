@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { businessService, appointmentService, favoritesService } from '../services';
+import { businessService, appointmentService, favoritesService, reviewService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import './BusinessDetail.css';
 
@@ -38,7 +38,7 @@ const BusinessDetail = () => {
         .then(r => setFavorite(r.data.includes(parseInt(id))))
         .catch(() => {});
     }
-  }, [fetchBusiness]);
+  }, [fetchBusiness, id, isAuthenticated, user?.role]);
 
   const fetchAvailableSlots = useCallback(async () => {
     try {

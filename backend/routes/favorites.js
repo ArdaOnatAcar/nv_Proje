@@ -44,7 +44,7 @@ router.post('/:businessId', auth, requireRole('customer'), (req, res) => {
     db.run(
       'INSERT OR IGNORE INTO favorites (customer_id, business_id) VALUES (?, ?)',
       [req.user.id, businessId],
-      function(err2) {
+      function (err2) {
         if (err2) return res.status(500).json({ error: err2.message });
         // Return current favorite status
         db.get('SELECT 1 FROM favorites WHERE customer_id = ? AND business_id = ?', [req.user.id, businessId], (err3, fav) => {
@@ -61,7 +61,7 @@ router.delete('/:businessId', auth, requireRole('customer'), (req, res) => {
   const businessId = parseInt(req.params.businessId, 10);
   if (!businessId) return res.status(400).json({ error: 'Invalid business id' });
 
-  db.run('DELETE FROM favorites WHERE customer_id = ? AND business_id = ?', [req.user.id, businessId], function(err) {
+  db.run('DELETE FROM favorites WHERE customer_id = ? AND business_id = ?', [req.user.id, businessId], function (err) {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ business_id: businessId, favorited: false });
   });

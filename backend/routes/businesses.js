@@ -90,9 +90,9 @@ router.get('/:id/availability', auth, (req, res) => {
     db.get('SELECT * FROM business_settings WHERE business_id = ?', [businessId], (err, settings) => {
       if (err) return res.status(500).json({ error: err.message });
 
-  const slotInterval = settings?.slot_interval_minutes ?? 15;
-  const minNotice = settings?.min_notice_minutes ?? 60;
-  const bookingWindowDays = settings?.booking_window_days ?? 30;
+      const slotInterval = settings?.slot_interval_minutes ?? 15;
+      const minNotice = settings?.min_notice_minutes ?? 60;
+      const bookingWindowDays = settings?.booking_window_days ?? 30;
 
       // Service + capable staff
       db.get('SELECT * FROM services WHERE id = ? AND business_id = ?', [service_id, businessId], (err, service) => {
@@ -118,9 +118,14 @@ router.get('/:id/availability', auth, (req, res) => {
             };
             const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
 
-            const openMin = toMinutes(open);
+            let openMin = toMinutes(open);
             const closeMin = toMinutes(close);
             const need = Number(service.duration);
+
+            // Round openMin up to nearest slot interval to ensure grid alignment
+            if (openMin % slotInterval !== 0) {
+              openMin = Math.ceil(openMin / slotInterval) * slotInterval;
+            }
 
             // min_notice (GMT+3 assumed) and booking window
             const now = new Date();
@@ -270,7 +275,7 @@ router.post('/', auth, requireRole('business_owner'), (req, res) => {
     `INSERT INTO businesses (owner_id, name, type, description, city, district, address, phone, image_url, opening_time, closing_time)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [req.user.id, name, type, description, city, district, address, phone, image_url, opening_time, closing_time],
-    function(err) {
+    function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -436,15 +441,15 @@ router.get('/owner/my-businesses', auth, requireRole('business_owner'), (req, re
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-      
+
       // Fetch services for each business
       const businessesWithServices = [];
       let completed = 0;
-      
+
       if (businesses.length === 0) {
         return res.json([]);
       }
-      
+
       businesses.forEach((business) => {
         db.all(
           'SELECT * FROM services WHERE business_id = ? ORDER BY price',
@@ -453,12 +458,12 @@ router.get('/owner/my-businesses', auth, requireRole('business_owner'), (req, re
             if (err) {
               return res.status(500).json({ error: err.message });
             }
-            
+
             businessesWithServices.push({
               ...business,
               services: services || []
             });
-            
+
             completed++;
             if (completed === businesses.length) {
               res.json(businessesWithServices);
@@ -495,7 +500,7 @@ router.post('/:id/staff', auth, requireRole('business_owner'), (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(403).json({ error: 'Access denied' });
 
-    db.run('INSERT INTO staff (business_id, name, active) VALUES (?, ?, ?)', [businessId, name, active ? 1 : 0], function(err) {
+    db.run('INSERT INTO staff (business_id, name, active) VALUES (?, ?, ?)', [businessId, name, active ? 1 : 0], function (err) {
       if (err) return res.status(500).json({ error: err.message });
       db.get('SELECT id, name, active, created_at FROM staff WHERE id = ?', [this.lastID], (err2, staff) => {
         if (err2) return res.status(500).json({ error: err2.message });

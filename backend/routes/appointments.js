@@ -73,8 +73,8 @@ router.post('/', auth, (req, res) => {
           if (err) return res.status(500).json({ error: err.message });
           if (!service) return res.status(400).json({ error: 'Service not found for business' });
 
-          const toMinutes = (hhmm) => { const [h,m] = String(hhmm).split(':').map(Number); return h*60+m; };
-          const toHHMM = (mins) => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+          const toMinutes = (hhmm) => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; };
+          const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
           const openMin = toMinutes(biz.opening_time || '09:00');
           const closeMin = toMinutes(biz.closing_time || '18:00');
           const startMin = toMinutes(start_time);
@@ -92,8 +92,8 @@ router.post('/', auth, (req, res) => {
           // min notice (GMT+3 assumed)
           const now = new Date();
           const nowGmt3 = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60 * 1000);
-          const todayStr = nowGmt3.toISOString().slice(0,10);
-          const todayLocalMinutes = nowGmt3.getHours()*60 + nowGmt3.getMinutes();
+          const todayStr = nowGmt3.toISOString().slice(0, 10);
+          const todayLocalMinutes = nowGmt3.getHours() * 60 + nowGmt3.getMinutes();
           const minStartMinsToday = todayLocalMinutes + minNotice;
           if (appointment_date === todayStr && startMin < minStartMinsToday) {
             return res.status(400).json({ error: 'Min notice not satisfied' });
@@ -128,7 +128,7 @@ router.post('/', auth, (req, res) => {
                   [business_id, appointment_date, staffId, toHHMM(endMin), toHHMM(startMin)],
                   (err, overlap) => {
                     if (err) return res.status(500).json({ error: err.message });
-                    if (overlap) return tryAssign(idx+1);
+                    if (overlap) return tryAssign(idx + 1);
 
                     // Transactional re-check + insert
                     db.serialize(() => {
@@ -148,7 +148,7 @@ router.post('/', auth, (req, res) => {
                              (business_id, service_id, customer_id, customer_name, customer_phone, appointment_date, appointment_time, start_time, end_time, staff_id, status, notes, source)
                              VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, 'owner_manual')`,
                             [business_id, service_id, customer_name, customer_phone, appointment_date, toHHMM(startMin), toHHMM(startMin), toHHMM(endMin), staffId, notes || null],
-                            function(err3) {
+                            function (err3) {
                               if (err3) { db.run('ROLLBACK'); return res.status(500).json({ error: err3.message }); }
                               db.run('COMMIT', (err4) => {
                                 if (err4) return res.status(500).json({ error: err4.message });
@@ -206,8 +206,8 @@ router.post('/', auth, (req, res) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!service) return res.status(400).json({ error: 'Service not found for business' });
 
-        const toMinutes = (hhmm) => { const [h,m] = String(hhmm).split(':').map(Number); return h*60+m; };
-        const toHHMM = (mins) => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+        const toMinutes = (hhmm) => { const [h, m] = String(hhmm).split(':').map(Number); return h * 60 + m; };
+        const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
         const openMin = toMinutes(biz.opening_time || '09:00');
         const closeMin = toMinutes(biz.closing_time || '18:00');
         const startMin = toMinutes(start_time);
@@ -223,8 +223,8 @@ router.post('/', auth, (req, res) => {
         // min notice (GMT+3)
         const now = new Date();
         const nowGmt3 = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60 * 1000);
-        const todayStr = nowGmt3.toISOString().slice(0,10);
-        const todayLocalMinutes = nowGmt3.getHours()*60 + nowGmt3.getMinutes();
+        const todayStr = nowGmt3.toISOString().slice(0, 10);
+        const todayLocalMinutes = nowGmt3.getHours() * 60 + nowGmt3.getMinutes();
         const minStartMinsToday = todayLocalMinutes + minNotice;
         if (appointment_date === todayStr && startMin < minStartMinsToday) {
           return res.status(400).json({ error: 'Min notice not satisfied' });
@@ -258,7 +258,7 @@ router.post('/', auth, (req, res) => {
                 [business_id, appointment_date, staffId, toHHMM(endMin), toHHMM(startMin)],
                 (err, overlap) => {
                   if (err) return res.status(500).json({ error: err.message });
-                  if (overlap) return tryAssign(idx+1);
+                  if (overlap) return tryAssign(idx + 1);
 
                   db.serialize(() => {
                     db.run('BEGIN IMMEDIATE');
@@ -277,7 +277,7 @@ router.post('/', auth, (req, res) => {
                            (business_id, service_id, customer_id, appointment_date, appointment_time, start_time, end_time, staff_id, status, notes, source)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, 'customer')`,
                           [business_id, service_id, req.user.id, appointment_date, toHHMM(startMin), toHHMM(startMin), toHHMM(endMin), staffId, notes || null],
-                          function(err3) {
+                          function (err3) {
                             if (err3) { db.run('ROLLBACK'); return res.status(500).json({ error: err3.message }); }
                             db.run('COMMIT', (err4) => {
                               if (err4) return res.status(500).json({ error: err4.message });

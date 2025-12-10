@@ -183,18 +183,18 @@ INSERT INTO users (email, password, name, phone, role) VALUES
 
 -- Businesses
 INSERT INTO businesses (owner_id, name, type, description, city, district, address, phone, image_url, opening_time, closing_time) VALUES
-(1,'Parla Kuaför','kuaför','Saç kesim ve bakım','İstanbul','Kadıköy','Moda Mah. 1','02165550000',NULL,'09:00','20:00'),
-(2,'Zen Spa','spa','Masaj ve spa hizmetleri','Ankara','Çankaya','Kızılay 2','03125550000',NULL,'10:00','22:00'),
-(3,'FitCare Klinik','sağlık','Fizyoterapi ve bakım','İzmir','Konak','Alsancak 3','02325550000',NULL,'08:00','18:00');
+(1,'Parla Kuaför','kuafor','Saç kesim ve bakım','İstanbul','Kadıköy','Moda Mah. 1','02165550000',NULL,'09:00','20:00'),
+(2,'Ne Olur Dövme','dovmeci','Dövme hizmeti','Ankara','Çankaya','Kızılay 2','03125550000',NULL,'10:00','22:00'),
+(3,'Nar Güzellik','guzellik','Güzellik Merkezi','İzmir','Konak','Alsancak 3','02325550000',NULL,'08:00','18:00');
 
 -- Services
 INSERT INTO services (business_id, name, description, price, duration) VALUES
 (1,'Saç Kesim','Klasik saç kesim',250,45),
 (1,'Fön','Fön ve şekillendirme',150,30),
-(2,'Klasik Masaj','Rahatlama masajı',500,60),
-(2,'Aroma Terapi','Aromatik yağlarla masaj',600,75),
-(3,'Muayene','İlk değerlendirme',350,40),
-(3,'Fizyoterapi Seansı','Bireysel seans',700,50);
+(2,'Büyük Dövme','Dövme hizmeti',5000,60),
+(2,'Küçük Dövme','Küçük dövme hizmeti',3000,30),
+(3,'Yüz Maskesi','Yüz maskesi',350,40),
+(3,'Nail Art','Tırnak süsleme',700,50);
 
 -- Staff
 INSERT INTO staff (business_id, name, active) VALUES

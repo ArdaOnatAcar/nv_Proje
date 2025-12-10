@@ -37,7 +37,7 @@ router.post('/', auth, (req, res) => {
   }
 
   // Verify qualifying appointment: status confirmed/completed and date passed
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = new Date().toISOString().slice(0, 10);
   db.get(
     `SELECT id FROM appointments 
      WHERE business_id = ? AND customer_id = ? 
@@ -66,7 +66,7 @@ router.post('/', auth, (req, res) => {
           db.run(
             'INSERT INTO reviews (business_id, customer_id, rating, comment) VALUES (?, ?, ?, ?)',
             [business_id, req.user.id, rating, comment],
-            function(err) {
+            function (err) {
               if (err) {
                 return res.status(500).json({ error: err.message });
               }
