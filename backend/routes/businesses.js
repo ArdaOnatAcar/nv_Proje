@@ -29,8 +29,14 @@ router.get('/', (req, res) => {
     params.push(district);
   }
   if (search) {
-    conditions.push('(b.name LIKE ? OR b.description LIKE ?)');
-    params.push(`%${search}%`, `%${search}%`);
+    conditions.push(`(
+      b.name LIKE ? OR b.description LIKE ?
+      OR EXISTS (
+        SELECT 1 FROM services s
+        WHERE s.business_id = b.id AND (s.name LIKE ? OR s.description LIKE ?)
+      )
+    )`);
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
   }
 
   if (conditions.length > 0) {

@@ -13,9 +13,12 @@ cd Randex
 ```
 
 ### Adım 2: Backend Kurulumu ve Başlatma
-```bash
+```powershell
 # Bağımlılıkları yükle
 npm install
+
+# (İsteğe bağlı) Veritabanını dummy verilerle sıfırla ve doldur
+python .\backend\scripts\reset_and_load_db.py --db-path .\backend\randex.db --with-dummy
 
 # Backend sunucusunu başlat
 npm start
@@ -24,7 +27,7 @@ Backend sunucusu http://localhost:3001 adresinde çalışacaktır.
 
 ### Adım 3: Frontend Kurulumu ve Başlatma
 Yeni bir terminal penceresi açın:
-```bash
+```powershell
 # Frontend dizinine git
 cd frontend
 
@@ -35,6 +38,10 @@ npm install
 npm start
 ```
 Frontend uygulaması http://localhost:3000 adresinde otomatik olarak açılacaktır.
+
+Backend URL yapılandırması:
+- Varsayılan: Frontend `package.json` içindeki `proxy` ile `http://localhost:3001/api` kullanılır.
+- Alternatif: `.env` dosyasında `REACT_APP_API_URL` tanımlayarak özel API adresi verebilirsiniz.
 
 ## Uygulamayı Kullanma
 
@@ -67,29 +74,36 @@ Uygulama SQLite veritabanı kullanır. İlk çalıştırmada `randex.db` dosyas�
 ### Veritabanını Sıfırlama
 Tüm verileri silmek ve baştan başlamak için:
 ```powershell
-Remove-Item .\backend\randex.db -Force
-npm start  # Veritabanı yeniden oluşturulacak
+# Otomatik sıfırla ve dummy verilerle doldur
+python .\backend\scripts\reset_and_load_db.py --db-path .\backend\randex.db --with-dummy
+
+# veya tamamen boş veritabanı oluşturmak için
+python .\backend\scripts\reset_and_load_db.py --db-path .\backend\randex.db
 ```
 
 ## Sorun Giderme
 
 ### Port Kullanımda Hatası
 Eğer 3000 veya 3001 portları kullanımdaysa:
-```bash
-# Port kullanımını kontrol et
-lsof -i :3000
-lsof -i :3001
+```powershell
+# Windows PowerShell'de 3000/3001 portlarını kullanan işlemleri bul
+Get-NetTCPConnection -LocalPort 3000,3001 | Select-Object -Property OwningProcess, LocalPort, State | Sort-Object LocalPort
 
-# İlgili işlemi sonlandır
-kill -9 <PID>
+# PID ile işlemi sonlandır
+Stop-Process -Id <PID> -Force
 ```
 
 ### Modül Bulunamadı Hatası
-```bash
+```powershell
 # node_modules klasörünü sil ve yeniden yükle
-rm -rf node_modules package-lock.json
+Remove-Item -Recurse -Force node_modules, package-lock.json
 npm install
 ```
+
+## Arama, Filtreleme ve Sıralama
+- Ana sayfadaki arama çubuğu: İşletme adı/açıklama yanında hizmet adı/açıklamayı da arar.
+- Sıralama: "Puana Göre" (`sort=rating`) veya "Yorum Sayısına Göre" (`sort=reviews`).
+- Filtreler: `minRating` (örn. 4.5+), `reviewCountRange` (0-50, 51-200, 200+), `type`, `city`, `district`.
 
 ## Özellikler
 

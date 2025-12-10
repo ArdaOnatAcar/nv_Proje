@@ -2,43 +2,48 @@
 
 Randex, berber, kuaför, dövmeci ve güzellik merkezleri gibi saatlik randevu üzerine çalışan işletmeleri tek bir uygulamada toplayan bir randevu yönetim sistemidir.
 
-## Özellikler
-
-### Müşteri Özellikleri
-- İşletmeleri türlerine göre filtreleme ve arama
-- İşletme detaylarını, hizmetleri, fiyatları ve yorumları görüntüleme
+ - İşletmeleri tür/şehir/ilçe göre filtreleme ve arama
+ - Arama çubuğu işletme adı/açıklama yanında hizmet adı/açıklamayı da tarar
 - Uygun tarih ve saatlerde randevu alma
 - Randevuları görüntüleme ve yönetme
-- Tamamlanan randevular için yorum ve değerlendirme yapma
 
-### İşletme Sahibi Özellikleri
-- İşletme oluşturma ve yönetme
+### Arama ve Sıralama
+ - `minRating` eşiği ile puan filtresi (örn: 4.0+)
+ - `reviewCountRange` ile yorum sayısı aralığı (0-50, 51-200, 200+)
+ - Sıralama: `rating` (puan) veya `reviews` (yorum sayısı)
 - Hizmet ekleme, düzenleme ve silme
 - Çalışma saatlerini belirleme
 - Gelen randevuları görüntüleme ve onaylama
 - Randevu durumunu güncelleme (beklemede, onaylandı, iptal, tamamlandı)
 
+
+Veritabanını dummy verilerle hızlıca doldurmak için:
+```powershell
+python .\backend\scripts\reset_and_load_db.py --db-path .\backend\randex.db --with-dummy
+```
 ## Teknolojiler
 
 ### Backend
 - Node.js
 - Express.js
+
+`.env` içinde `REACT_APP_API_URL` ayarlanmadıysa, frontend `package.json` içindeki `proxy` sayesinde `http://localhost:3001/api` adresine bağlanır.
 - SQLite (veritabanı)
 - JWT (kimlik doğrulama)
-- bcrypt (şifre hashleme)
-
+ - Sorgu parametreleri: `type`, `city`, `district`, `search`, `sort`, `minRating`, `reviewCountRange`
+ - Not: `search` hem işletme adı/açıklama hem de hizmet adı/açıklama içinde arar
 ### Frontend
 - React
-- React Router
+ - `GET /api/businesses/:id/availability?service_id=...&date=YYYY-MM-DD` - Uygun saatler (servis ve personel uygunluğuna göre)
 - Axios
 - CSS3
 
 ## Kurulum
 
-### Gereksinimler
+ - city, district alanları ile konum bilgisi
 - Node.js (v14 veya üzeri)
 - npm veya yarn
-
+ - id, business_id, service_id, customer_id, appointment_date, appointment_time, start_time, end_time, staff_id, status, notes
 ### Backend Kurulumu
 
 1. Projeyi klonlayın veya indirin

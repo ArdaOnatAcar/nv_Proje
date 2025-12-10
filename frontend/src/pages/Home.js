@@ -58,7 +58,7 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
-  }, [typeFilter, cityFilter, districtFilter, search]);
+  }, [typeFilter, cityFilter, districtFilter, search, sortMode, ratingFilter, reviewCountRange]);
 
   useEffect(() => {
     fetchBusinesses();
