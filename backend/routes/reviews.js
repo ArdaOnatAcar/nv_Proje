@@ -24,6 +24,7 @@ router.get('/business/:businessId', (req, res) => {
 });
 
 // Create review (customer only)
+// Create review: requires confirmed (or owner manual confirmed) appointment whose date passed
 router.post('/', auth, (req, res) => {
   const { business_id, rating, comment } = req.body;
 
@@ -35,16 +36,19 @@ router.post('/', auth, (req, res) => {
     return res.status(400).json({ error: 'Rating must be between 1 and 5' });
   }
 
-  // Check if user has a completed appointment with this business
+  // Verify qualifying appointment: status confirmed/completed and date passed
+  const todayStr = new Date().toISOString().slice(0, 10);
   db.get(
-    'SELECT * FROM appointments WHERE business_id = ? AND customer_id = ? AND status = ?',
-    [business_id, req.user.id, 'completed'],
+    `SELECT id FROM appointments 
+     WHERE business_id = ? AND customer_id = ? 
+       AND status IN ('confirmed','completed') 
+       AND appointment_date < ?
+     ORDER BY appointment_date DESC LIMIT 1`,
+    [business_id, req.user.id, todayStr],
     (err, appointment) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       if (!appointment) {
-        return res.status(403).json({ error: 'You must have a completed appointment to leave a review' });
+        return res.status(403).json({ error: 'Onaylanmış ve tarihi geçmiş randevunuz yok' });
       }
 
       // Check if user already reviewed this business
@@ -56,13 +60,13 @@ router.post('/', auth, (req, res) => {
             return res.status(500).json({ error: err.message });
           }
           if (existingReview) {
-            return res.status(400).json({ error: 'You have already reviewed this business' });
+            return res.status(400).json({ error: 'Bu işletmeyi zaten değerlendirdiniz' });
           }
 
           db.run(
             'INSERT INTO reviews (business_id, customer_id, rating, comment) VALUES (?, ?, ?, ?)',
             [business_id, req.user.id, rating, comment],
-            function(err) {
+            function (err) {
               if (err) {
                 return res.status(500).json({ error: err.message });
               }

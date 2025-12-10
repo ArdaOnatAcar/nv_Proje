@@ -34,6 +34,8 @@ function initializeDatabase() {
       name TEXT NOT NULL,
       type TEXT NOT NULL,
       description TEXT,
+      city TEXT,
+      district TEXT,
       address TEXT,
       phone TEXT,
       image_url TEXT,
@@ -43,6 +45,22 @@ function initializeDatabase() {
       FOREIGN KEY (owner_id) REFERENCES users(id)
     )
   `);
+
+  // Add city column if it doesn't exist (migration for existing dbs)
+  db.run("ALTER TABLE businesses ADD COLUMN city TEXT", (err) => {
+    // Ignore error if column already exists
+    if (err && !err.message.includes("duplicate column name")) {
+      console.error("Error adding city column:", err.message);
+    }
+  });
+
+  // Add district column if it doesn't exist (migration for existing dbs)
+  db.run("ALTER TABLE businesses ADD COLUMN district TEXT", (err) => {
+    // Ignore error if column already exists
+    if (err && !err.message.includes("duplicate column name")) {
+      console.error("Error adding district column:", err.message);
+    }
+  });
 
   // Services table
   db.run(`
@@ -93,6 +111,19 @@ function initializeDatabase() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE,
       FOREIGN KEY (customer_id) REFERENCES users(id)
+    )
+  `);
+
+  // Favorites (bookmark) table: one row per customer-business favorite
+  db.run(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      customer_id INTEGER NOT NULL,
+      business_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(customer_id, business_id),
+      FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
     )
   `);
 

@@ -4,15 +4,15 @@ export const authService = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
   },
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
+    const user = sessionStorage.getItem('user');
     return user ? JSON.parse(user) : null;
   },
   isAuthenticated: () => {
-    return !!localStorage.getItem('token');
+    return !!sessionStorage.getItem('token');
   }
 };
 
@@ -25,6 +25,8 @@ export const businessService = {
   getMyBusinesses: () => api.get('/businesses/owner/my-businesses'),
   // Unified availability endpoint (service-aware, staff-aware)
   getAvailability: (businessId, params) => api.get(`/businesses/${businessId}/availability`, { params }),
+  getSettings: (businessId) => api.get(`/businesses/${businessId}/settings`),
+  updateSettings: (businessId, data) => api.put(`/businesses/${businessId}/settings`, data),
 };
 
 export const serviceService = {
@@ -56,4 +58,16 @@ export const staffService = {
   update: (staffId, data) => api.put(`/staff/${staffId}`, data),
   getServices: (staffId) => api.get(`/staff/${staffId}/services`),
   setServices: (staffId, service_ids) => api.post(`/staff/${staffId}/services`, { service_ids }),
+};
+
+export const locationService = {
+  getAll: () => api.get('/locations')
+};
+
+// Favorites (bookmarks) service
+export const favoritesService = {
+  list: () => api.get('/favorites'), // detailed businesses
+  listIds: () => api.get('/favorites/ids'),
+  add: (businessId) => api.post(`/favorites/${businessId}`),
+  remove: (businessId) => api.delete(`/favorites/${businessId}`)
 };

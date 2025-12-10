@@ -84,6 +84,7 @@
   transition: transform 0.3s, box-shadow 0.3s;
   text-decoration: none;
   color: inherit;
+  position: relative;
 }
 
 .business-card:hover {
@@ -161,4 +162,31 @@
   padding: 60px 20px;
   color: #666;
   font-size: 18px;
+}
+
+.favorite-heart {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255,255,255,0.85);
+  border: none;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.favorite-heart:hover {
+  background: rgba(255,255,255,1);
+  transform: scale(1.05);
+}
+
+.favorite-heart.favorited {
+  color: #e0245e;
 }

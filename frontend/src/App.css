@@ -39,6 +39,12 @@ body {
   cursor: not-allowed;
 }
 
+/* Compact button variant for tighter actions */
+.btn-compact {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
 /* Common form styles */
 .form-group {
   margin-bottom: 20px;
@@ -86,4 +92,3 @@ body {
   margin-bottom: 20px;
   text-align: center;
 }
-

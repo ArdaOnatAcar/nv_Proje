@@ -16,6 +16,33 @@
   color: #333;
 }
 
+/* Make header action buttons visibly smaller and tighter */
+/* Header actions right-aligned */
+.header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Ultra compact header buttons: shrink horizontal/vertical padding */
+.btn-header-action {
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px; /* match Düzenle boyutu */
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  line-height: 1.2;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-header-action:hover { background: #357abd; }
+
 .no-businesses {
   text-align: center;
   padding: 60px 20px;

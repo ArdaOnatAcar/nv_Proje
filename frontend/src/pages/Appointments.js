@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { appointmentService } from '../services';
+import { appointmentService, reviewService } from '../services';
 import { useAuth } from '../contexts/AuthContext';
 import './Appointments.css';
 
@@ -9,6 +9,8 @@ const Appointments = () => {
   const [selectedBusiness, setSelectedBusiness] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const { user } = useAuth();
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ business_id: null, rating: '', comment: '' });
 
   useEffect(() => {
     fetchAppointments();
@@ -53,6 +55,40 @@ const Appointments = () => {
       return matchBiz && matchStatus;
     });
   }, [appointments, selectedBusiness, selectedStatus]);
+
+  const openReviewModal = (appointment) => {
+    setReviewForm({ business_id: appointment.business_id, rating: '', comment: '' });
+    setShowReviewModal(true);
+  };
+
+  const submitReview = async () => {
+    const ratingNum = parseInt(reviewForm.rating, 10);
+    if (!ratingNum || ratingNum < 1 || ratingNum > 5) {
+      alert('Puan 1-5 olmalı');
+      return;
+    }
+    try {
+      await reviewService.create({ business_id: reviewForm.business_id, rating: ratingNum, comment: reviewForm.comment });
+      alert('Yorum kaydedildi');
+      setShowReviewModal(false);
+      setReviewForm({ business_id: null, rating: '', comment: '' });
+      fetchAppointments();
+    } catch (e) {
+      alert(e.response?.data?.error || 'Yorum kaydedilemedi');
+    }
+  };
+
+  const isExpired = (appointment) => {
+    try {
+      const today = new Date();
+      const apptDate = new Date(appointment.appointment_date);
+      const todayYMD = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const apptYMD = new Date(apptDate.getFullYear(), apptDate.getMonth(), apptDate.getDate());
+      return apptYMD < todayYMD;
+    } catch (e) {
+      return false;
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusMap = {
@@ -109,8 +145,9 @@ const Appointments = () => {
             const displayEmail = appointment.account_customer_email || appointment.customer_email || '';
             const displayStart = appointment.start_time || appointment.appointment_time;
             const displayEnd = appointment.end_time ? ` - ${appointment.end_time}` : '';
+            const expired = isExpired(appointment);
             return (
-            <div key={appointment.id} className="appointment-card">
+            <div key={appointment.id} className={`appointment-card${expired ? ' expired' : ''}`}>
               <div className="appointment-header">
                 <h3>{appointment.business_name}</h3>
                 {getStatusBadge(appointment.status)}
@@ -121,12 +158,22 @@ const Appointments = () => {
               
               <div className="appointment-details">
                 <p><strong>Hizmet:</strong> {appointment.service_name}</p>
-                <p><strong>Tarih:</strong> {new Date(appointment.appointment_date).toLocaleDateString('tr-TR')}</p>
+                <p>
+                  <strong>Tarih:</strong> {new Date(appointment.appointment_date).toLocaleDateString('tr-TR')}
+                  {expired && (
+                    <span className="expired-badge" style={{ marginLeft: 8 }}>Tarihi geçti</span>
+                  )}
+                </p>
                 <p><strong>Saat:</strong> {displayStart}{displayEnd}</p>
                 <p><strong>Süre:</strong> {appointment.duration} dakika</p>
                 <p><strong>Fiyat:</strong> {appointment.price} TL</p>
                 {appointment.notes && (
                   <p><strong>Notlar:</strong> {appointment.notes}</p>
+                )}
+                {expired && user.role === 'customer' && ['confirmed','completed'].includes(appointment.status) && (
+                  <div className="review-inline">
+                    <button className="btn-review-small" onClick={() => openReviewModal(appointment)}>Yorumla</button>
+                  </div>
                 )}
                 
                 {user.role === 'business_owner' && (
@@ -139,7 +186,7 @@ const Appointments = () => {
               </div>
 
               <div className="appointment-actions">
-                {appointment.status === 'pending' && (
+                {appointment.status === 'pending' && !expired && (
                   <>
                     {user.role === 'business_owner' && (
                       <button 
@@ -157,17 +204,32 @@ const Appointments = () => {
                     </button>
                   </>
                 )}
-                {appointment.status === 'confirmed' && user.role === 'business_owner' && (
-                  <button 
-                    onClick={() => handleStatusChange(appointment.id, 'completed')}
-                    className="btn-complete"
-                  >
-                    Tamamlandı Olarak İşaretle
-                  </button>
-                )}
+                {/* İşletme tarafında tamamlandı butonu gereksiz: kaldırıldı */}
               </div>
             </div>
           );})}
+        </div>
+      )}
+      {showReviewModal && (
+        <div className="modal-overlay" onClick={() => setShowReviewModal(false)}>
+          <div className="modal-content" onClick={(e)=>e.stopPropagation()}>
+            <h2>Yorum Ekle</h2>
+            <div className="form-group">
+              <label>Puan (1-5)</label>
+              <select value={reviewForm.rating} onChange={(e)=>setReviewForm({...reviewForm,rating:e.target.value})}>
+                <option value="">Seçin</option>
+                {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Yorum (Opsiyonel)</label>
+              <textarea rows="3" value={reviewForm.comment} onChange={(e)=>setReviewForm({...reviewForm,comment:e.target.value})} />
+            </div>
+            <div className="form-actions">
+              <button className="btn-secondary" onClick={() => setShowReviewModal(false)}>İptal</button>
+              <button className="btn-primary" onClick={submitReview}>Kaydet</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

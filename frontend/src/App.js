@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
+import Favorites from './pages/Favorites';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import BusinessDetail from './pages/BusinessDetail';
@@ -71,6 +72,14 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/business/:id" element={<BusinessDetail />} />
+            <Route 
+              path="/favorites" 
+              element={
+                <PrivateRoute>
+                  <Favorites />
+                </PrivateRoute>
+              } 
+            />
             <Route 
               path="/appointments" 
               element={

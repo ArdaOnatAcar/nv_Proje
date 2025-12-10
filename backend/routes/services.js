@@ -39,17 +39,35 @@ router.post('/', auth, requireRole('business_owner'), (req, res) => {
     db.run(
       'INSERT INTO services (business_id, name, description, price, duration) VALUES (?, ?, ?, ?, ?)',
       [business_id, name, description, price, duration],
-      function(err) {
+      function (err) {
         if (err) {
           return res.status(500).json({ error: err.message });
         }
+        const serviceId = this.lastID;
 
-        db.get('SELECT * FROM services WHERE id = ?', [this.lastID], (err, service) => {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-          res.status(201).json(service);
-        });
+        // Link staff if provided
+        const staffIds = req.body.staff_ids;
+        if (staffIds && Array.isArray(staffIds) && staffIds.length > 0) {
+          const placeholders = staffIds.map(() => '(?, ?)').join(',');
+          const values = [];
+          staffIds.forEach(sid => { values.push(sid, serviceId); });
+
+          db.run(`INSERT INTO staff_services (staff_id, service_id) VALUES ${placeholders}`, values, (err2) => {
+            if (err2) console.error('Error linking staff:', err2.message);
+            // Return service regardless of linkage error (or handle better)
+            db.get('SELECT * FROM services WHERE id = ?', [serviceId], (err3, service) => {
+              if (err3) return res.status(500).json({ error: err3.message });
+              res.status(201).json(service);
+            });
+          });
+        } else {
+          db.get('SELECT * FROM services WHERE id = ?', [serviceId], (err, service) => {
+            if (err) {
+              return res.status(500).json({ error: err.message });
+            }
+            res.status(201).json(service);
+          });
+        }
       }
     );
   });
